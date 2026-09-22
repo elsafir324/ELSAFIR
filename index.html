@@ -1214,6 +1214,16 @@
               <input type="number" id="dailyOrders" name="dailyOrders" min="1" max="100" required maxlength="3" data-i18n-placeholder="ph_orders" placeholder="مثال: 15" />
             </div>
             <div class="form-group">
+              <label class="check-item" for="hasPromo" style="margin-bottom:0;">
+                <input type="checkbox" id="hasPromo" name="hasPromo" />
+                <span data-i18n="label_has_promo">لدي كود خصم</span>
+              </label>
+              <div id="promoWrap" style="display:none; margin-top:10px;">
+                <label for="promoCode" data-i18n="label_promo">كود الخصم</label>
+                <input type="text" id="promoCode" name="promoCode" maxlength="30" data-i18n-placeholder="ph_promo" placeholder="مثال: SAFIR10" />
+              </div>
+            </div>
+            <div class="form-group">
               <label for="details" data-i18n="label_details">ملاحظات إضافية</label>
               <textarea id="details" name="details" maxlength="1000" data-i18n-placeholder="ph_details" placeholder="تفاصيل المنتجات، حجم الطلبات، أو أي استفسار..."></textarea>
             </div>
@@ -1411,6 +1421,7 @@
         sub_eyebrow: 'الاشتراك', sub_title: 'ابدأ مع السفير ECOM', sub_desc: 'أرسل بياناتك وسنتواصل معك قريبًا.',
         form_title: 'ابدأ مع السفير ECOM', form_subtitle: 'أرسل بياناتك وسنتواصل معك قريبًا.',
         label_name: 'الاسم', label_family: 'اللقب', label_phone: 'رقم الهاتف', label_wilaya: 'الولاية', label_services: 'الخدمة المطلوبة', label_orders: 'عدد الطلبات اليومية', ph_orders: 'مثال: 15', label_details: 'ملاحظات إضافية',
+        label_has_promo: 'لدي كود خصم', label_promo: 'كود الخصم', ph_promo: 'مثال: SAFIR10',
         ph_name: 'أحمد', ph_family: 'بن علي', ph_phone: '0554 624 480', ph_wilaya: 'اختر الولاية', ph_details: 'نوع المنتجات، أو أي ملاحظة...',
         svc_1: 'تأكيد ومتابعة', svc_2: 'Fulfillment كامل (تأكيد، متابعة، تغليف، تخزين، توصيل)',
         form_submit: 'إرسال الطلب', form_success: '✓ وصلنا طلبك. سنتواصل معك قريبًا عبر واتساب.', form_error: 'يرجى تعبئة كل الحقول المطلوبة.',
@@ -1461,6 +1472,7 @@
         sub_eyebrow: 'Inscription', sub_title: 'Commencez avec Al Safir', sub_desc: 'Remplissez le formulaire, nous vous contactons',
         form_title: 'Formulaire', form_subtitle: 'Vos informations, réponse rapide',
         label_name: 'Prénom', label_family: 'Nom', label_phone: 'Téléphone', label_wilaya: 'Wilaya', label_services: 'Services', label_orders: 'Commandes par jour', ph_orders: 'Ex: 15', label_details: 'Détails',
+        label_has_promo: 'J\'ai un code promo', label_promo: 'Code promo', ph_promo: 'Ex: SAFIR10',
         ph_name: 'Ahmed', ph_family: 'Benali', ph_phone: '0554 624 480', ph_wilaya: 'Choisir', ph_details: 'Produits, volume, questions...',
         svc_1: 'Confirmation & Suivi', svc_2: 'Fulfillment (confirmation, suivi, emballage, stockage, livraison)',
         form_submit: 'Demander un devis', form_success: '✓ Demande reçue. Nous vous contactons bientôt sur WhatsApp.', form_error: 'Veuillez remplir les champs obligatoires.',
@@ -1513,6 +1525,7 @@
         sub_eyebrow: 'Subscribe', sub_title: 'Start with Al Safir ECOM', sub_desc: 'Fill the form and we will contact you',
         form_title: 'Subscription form', form_subtitle: 'Enter your details for a quick reply',
         label_name: 'First name', label_family: 'Last name', label_phone: 'Phone', label_wilaya: 'Wilaya', label_services: 'Services needed', label_orders: 'Daily orders', ph_orders: 'e.g. 15', label_details: 'Details',
+        label_has_promo: 'I have a promo code', label_promo: 'Promo code', ph_promo: 'e.g. SAFIR10',
         ph_name: 'Ahmed', ph_family: 'Benali', ph_phone: '0554 624 480', ph_wilaya: 'Select', ph_details: 'Products, volume, questions...',
         svc_1: 'Confirmation & Tracking', svc_2: 'Full Fulfillment (confirmation, tracking, packaging, storage, delivery)',
         form_submit: 'Request a quote', form_success: '✓ Request received. We will contact you soon on WhatsApp.', form_error: 'Please fill all required fields.',
@@ -1724,8 +1737,19 @@
       if (v !== '') dailyOrdersInput.value = v;
     });
 
+    /* Promo code toggle */
+    const hasPromoEl = document.getElementById('hasPromo');
+    const promoWrap = document.getElementById('promoWrap');
+    const promoCodeInput = document.getElementById('promoCode');
+    if (hasPromoEl && promoWrap) {
+      hasPromoEl.addEventListener('change', () => {
+        promoWrap.style.display = hasPromoEl.checked ? 'block' : 'none';
+        if (!hasPromoEl.checked) promoCodeInput.value = '';
+      });
+    }
+
     /* Form submission */
-    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzWQZLMs3UtvS-Vgb4WGSzgT3G-7H1WLaUeNaMXP2UIM340T1-7x-VvcuajWZuzI_llFw/exec';
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwzWnbrpx9XLuwoK5YDVYh-yOmSIM8PymiilegDwelSiMtp4v4ePC3fQkEb2T_nNVVTMg/exec';
     const form = document.getElementById('subscribeForm');
     const formSuccess = document.getElementById('formSuccess');
     const formError = document.getElementById('formError');
@@ -1791,6 +1815,9 @@
       const wilayaVal = wilaya.value;
       const dailyOrdersVal = clampOrders(dailyOrdersInput.value);
       const details = sanitizeText(document.getElementById('details').value, 1000) || '—';
+      const promoCode = hasPromoEl && hasPromoEl.checked
+        ? sanitizeText(promoCodeInput.value, 30)
+        : '';
 
       if (!firstName || !lastName || !phone || !wilayaVal || dailyOrdersVal === '' || !isValidPhone(phone)) {
         formError.classList.add('show');
@@ -1818,6 +1845,7 @@
         services: servicesText,
         dailyOrders: dailyOrdersVal,
         details,
+        promoCode: promoCode || '—',
         language: currentLang,
         token: formToken,
         loadTime: formLoadedAt
@@ -1826,25 +1854,82 @@
       lastSubmitAt = now;
       submitBtn.disabled = true;
 
-      formSuccess.classList.add('show');
-      form.reset();
-      if (formTokenEl) formTokenEl.value = formToken;
-      if (formLoadedAtEl) formLoadedAtEl.value = String(formLoadedAt);
-      setTimeout(() => {
-        formSuccess.classList.remove('show');
-        submitBtn.disabled = false;
-      }, 5000);
+      const restoreForm = () => {
+        if (formTokenEl) formTokenEl.value = formToken;
+        if (formLoadedAtEl) formLoadedAtEl.value = String(formLoadedAt);
+      };
+
+      /* Durable local queue: nothing is lost even if the network
+         request fails outright, the tab is closed, or the device
+         goes offline mid-submit. Queued items retry automatically. */
+      function queueSubmission(p) {
+        try {
+          const key = 'safir_pending_submissions';
+          const queue = JSON.parse(localStorage.getItem(key) || '[]');
+          queue.push(p);
+          localStorage.setItem(key, JSON.stringify(queue));
+        } catch (_) { /* localStorage unavailable — nothing more we can do client-side */ }
+      }
+
+      async function sendToSheet(p, attempt) {
+        attempt = attempt || 1;
+        try {
+          const res = await fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(p),
+            keepalive: true
+          });
+          const data = await res.json();
+          if (!data || data.result !== 'success') throw new Error('server_error');
+          return true;
+        } catch (err) {
+          if (attempt < 3) {
+            await new Promise(r => setTimeout(r, attempt * 1000));
+            return sendToSheet(p, attempt + 1);
+          }
+          queueSubmission(p);
+          return false;
+        }
+      }
+
+      async function flushQueue() {
+        let queue;
+        try {
+          queue = JSON.parse(localStorage.getItem('safir_pending_submissions') || '[]');
+        } catch (_) { return; }
+        if (!queue.length) return;
+        const remaining = [];
+        for (const item of queue) {
+          const ok = await sendToSheet(item, 3); // don't re-retry 3x per item on every flush
+          if (!ok) remaining.push(item);
+        }
+        try { localStorage.setItem('safir_pending_submissions', JSON.stringify(remaining)); } catch (_) {}
+      }
 
       if (GOOGLE_SCRIPT_URL) {
-        fetch(GOOGLE_SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(payload),
-          keepalive: true
-        }).catch(() => {});
+        sendToSheet(payload).then((ok) => {
+          formSuccess.classList.add('show');
+          form.reset();
+          restoreForm();
+          setTimeout(() => {
+            formSuccess.classList.remove('show');
+            submitBtn.disabled = false;
+          }, 5000);
+        });
+      } else {
+        formSuccess.classList.add('show');
+        form.reset();
+        restoreForm();
+        setTimeout(() => {
+          formSuccess.classList.remove('show');
+          submitBtn.disabled = false;
+        }, 5000);
       }
-    });
+
+      // Retry anything left over from a previous failed visit on this device.
+      flushQueue();
+      window.addEventListener('online', flushQueue);
   </script>
 </body>
 </html>
