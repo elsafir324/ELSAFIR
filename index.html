@@ -1720,6 +1720,13 @@
       carouselEl.addEventListener('mouseleave', startAutoplay);
     }
 
+    // Some browsers throttle/pause timers on a backgrounded tab —
+    // explicitly restart autoplay when the tab becomes visible again.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopAutoplay();
+      else startAutoplay();
+    });
+
     updateCarousel(0);
     startAutoplay();
 
@@ -1754,7 +1761,7 @@
     }
 
     /* Form submission */
-    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwzWnbrpx9XLuwoK5YDVYh-yOmSIM8PymiilegDwelSiMtp4v4ePC3fQkEb2T_nNVVTMg/exec';
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyAdNLE6lrhvuuagbNMRN47kATPT7i2VoPAy1J8CYOQtCPFRNVFSI9KUUiWqSTSqcvXaA/exec';
     const form = document.getElementById('subscribeForm');
     const formSuccess = document.getElementById('formSuccess');
     const formError = document.getElementById('formError');
