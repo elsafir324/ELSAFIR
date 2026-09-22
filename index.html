@@ -1383,6 +1383,11 @@
   </footer>
 
   <script>
+    const queuedMessages = {
+      ar: '⏳ لم نتمكن من الإرسال فورًا، تم حفظ طلبك وسنعيد المحاولة تلقائيًا.',
+      fr: '⏳ Envoi impossible pour le moment, votre demande est enregistrée et sera renvoyée automatiquement.',
+      en: '⏳ Couldn\'t send right now — your request is saved and will retry automatically.'
+    };
     const translations = {
       ar: {
         dir: 'rtl', lang: 'ar', label: 'ع',
@@ -1780,6 +1785,60 @@
       return digits.length >= 8 && digits.length <= 15;
     }
 
+    /* Durable local queue: nothing is lost even if the network
+       request fails outright, the tab is closed, or the device
+       goes offline mid-submit. Queued items retry automatically. */
+    function queueSubmission(p) {
+      try {
+        const key = 'safir_pending_submissions';
+        const queue = JSON.parse(localStorage.getItem(key) || '[]');
+        queue.push(p);
+        localStorage.setItem(key, JSON.stringify(queue));
+      } catch (_) { /* localStorage unavailable — nothing more we can do client-side */ }
+    }
+
+    async function sendToSheet(p, attempt) {
+      attempt = attempt || 1;
+      try {
+        const res = await fetch(GOOGLE_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(p),
+          keepalive: true
+        });
+        const data = await res.json();
+        if (!data || data.result !== 'success') throw new Error('server_error');
+        return true;
+      } catch (err) {
+        if (attempt < 3) {
+          await new Promise(r => setTimeout(r, attempt * 1000));
+          return sendToSheet(p, attempt + 1);
+        }
+        queueSubmission(p);
+        return false;
+      }
+    }
+
+    async function flushQueue() {
+      let queue;
+      try {
+        queue = JSON.parse(localStorage.getItem('safir_pending_submissions') || '[]');
+      } catch (_) { return; }
+      if (!queue.length) return;
+      const remaining = [];
+      for (const item of queue) {
+        const ok = await sendToSheet(item, 3); // don't re-retry 3x per item on every flush
+        if (!ok) remaining.push(item);
+      }
+      try { localStorage.setItem('safir_pending_submissions', JSON.stringify(remaining)); } catch (_) {}
+    }
+
+    // Retry anything left over from a previous failed visit, on load
+    // and whenever the device comes back online — registered once,
+    // not on every submit.
+    flushQueue();
+    window.addEventListener('online', flushQueue);
+
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       formSuccess.classList.remove('show');
@@ -1859,77 +1918,32 @@
         if (formLoadedAtEl) formLoadedAtEl.value = String(formLoadedAt);
       };
 
-      /* Durable local queue: nothing is lost even if the network
-         request fails outright, the tab is closed, or the device
-         goes offline mid-submit. Queued items retry automatically. */
-      function queueSubmission(p) {
-        try {
-          const key = 'safir_pending_submissions';
-          const queue = JSON.parse(localStorage.getItem(key) || '[]');
-          queue.push(p);
-          localStorage.setItem(key, JSON.stringify(queue));
-        } catch (_) { /* localStorage unavailable — nothing more we can do client-side */ }
-      }
-
-      async function sendToSheet(p, attempt) {
-        attempt = attempt || 1;
-        try {
-          const res = await fetch(GOOGLE_SCRIPT_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(p),
-            keepalive: true
-          });
-          const data = await res.json();
-          if (!data || data.result !== 'success') throw new Error('server_error');
-          return true;
-        } catch (err) {
-          if (attempt < 3) {
-            await new Promise(r => setTimeout(r, attempt * 1000));
-            return sendToSheet(p, attempt + 1);
-          }
-          queueSubmission(p);
-          return false;
-        }
-      }
-
-      async function flushQueue() {
-        let queue;
-        try {
-          queue = JSON.parse(localStorage.getItem('safir_pending_submissions') || '[]');
-        } catch (_) { return; }
-        if (!queue.length) return;
-        const remaining = [];
-        for (const item of queue) {
-          const ok = await sendToSheet(item, 3); // don't re-retry 3x per item on every flush
-          if (!ok) remaining.push(item);
-        }
-        try { localStorage.setItem('safir_pending_submissions', JSON.stringify(remaining)); } catch (_) {}
-      }
-
-      if (GOOGLE_SCRIPT_URL) {
-        sendToSheet(payload).then((ok) => {
-          formSuccess.classList.add('show');
-          form.reset();
-          restoreForm();
-          setTimeout(() => {
-            formSuccess.classList.remove('show');
-            submitBtn.disabled = false;
-          }, 5000);
-        });
-      } else {
-        formSuccess.classList.add('show');
+      const finish = (ok) => {
         form.reset();
         restoreForm();
-        setTimeout(() => {
-          formSuccess.classList.remove('show');
-          submitBtn.disabled = false;
-        }, 5000);
-      }
+        if (ok) {
+          formSuccess.classList.add('show');
+          setTimeout(() => formSuccess.classList.remove('show'), 5000);
+        } else {
+          // Saved locally and will retry automatically — not a hard
+          // failure, so we reassure without claiming false success.
+          const originalText = formSuccess.textContent;
+          formSuccess.textContent = queuedMessages[currentLang] || queuedMessages.ar;
+          formSuccess.classList.add('show');
+          setTimeout(() => {
+            formSuccess.classList.remove('show');
+            formSuccess.textContent = originalText;
+          }, 6000);
+        }
+        submitBtn.disabled = false;
+      };
 
-      // Retry anything left over from a previous failed visit on this device.
-      flushQueue();
-      window.addEventListener('online', flushQueue);
+      if (GOOGLE_SCRIPT_URL) {
+        sendToSheet(payload).then(finish);
+      } else {
+        finish(true);
+      }
+    });
   </script>
 </body>
 </html>
